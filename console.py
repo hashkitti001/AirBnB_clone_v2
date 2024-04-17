@@ -2,6 +2,7 @@
 """ Console Module """
 import cmd
 import sys
+import shlex
 from models.base_model import BaseModel
 from models.__init__ import storage
 from models.user import User
@@ -112,33 +113,77 @@ class HBNBCommand(cmd.Cmd):
     def emptyline(self):
         """ Overrides the emptyline method of CMD """
         pass
-
-    def do_create(self, args):
-        split_args = args.split(" ")
-        """ Create an object of any class"""
-        if not args:
+    def _key_value_parser(self, args):
+        """creates a dictionary from a list of strings"""
+        new_dict = {}
+        for arg in args:
+            if "=" in arg:
+                kvp = arg.split('=', 1)
+                key = kvp[0]
+                value = kvp[1]
+                if value[0] == value[-1] == '"':
+                    value = shlex.split(value)[0].replace('_', ' ')
+                else:
+                    try:
+                        value = int(value)
+                    except:
+                        try:
+                            value = float(value)
+                        except:
+                            continue
+                new_dict[key] = value
+        return new_dict
+    # def _keyvalue_parser(self, args):
+    #     """creates a dictionary from a list of strings to used in kwargs"""
+    #     new_dict = {}
+    #     for arg in args:
+    #         if "=" in arg:
+    #             key_value_pair = arg.split("=")
+    #             key, value = key_value_pair
+    #             # Replace underscores with spaces
+    #             if value.startswith('"') and value.endswith('"'):
+    #                 value = value[1:-1].replace('_', ' ')
+    #             else:
+    #                 # Try to cast argument to int or float
+    #                 try:
+    #                     value = int(value)
+    #                 except:
+    #                     try:
+    #                         value = float(value)
+    #                     except:
+    #                         continue
+    #             new_dict[key] = value
+    #     return new_dict
+    # def do_create(self, args):
+    #     """ Create an object of any class"""
+    #     split_args = args.split()
+    #     if len(args) == 0:
+    #         print("** class name missing **")
+    #         return False
+    #     if split_args[0] in HBNBCommand.classes:
+    #         arg_dict = self._keyvalue_parser(split_args[1:])
+    #         new_instance = HBNBCommand.classes[split_args[0]](**arg_dict)
+    #     else:
+    #         print("** class doesn't exist **")
+    #         return False
+    #     storage.save()
+    #    #print(new_instance.id)
+    #     storage.save()
+    def do_create(self, arg):
+        """Creates a new instance of a class"""
+        args = arg.split()
+        if len(args) == 0:
             print("** class name missing **")
-            return
-        elif split_args[0] not in HBNBCommand.classes:
-            print("** class doesn't exist **")
-            return
-        if len(split_args) > 1:
-            params = split_args[1:]
-            obj_attrs = {}
-
-            for param in params:
-                key, value = param.split('=')
-                if value.startswith('"') and value.endswith('"'):
-                    value = value[1:-1].replace('_', ' ')
-                obj_attrs[key] = value
-            
-            new_instance = HBNBCommand.classes[split_args[0]](**obj_attrs)
+            return False
+        if args[0] in HBNBCommand.classes:
+            new_dict = self._key_value_parser(args[1:])
+            instance = HBNBCommand.classes[args[0]](**new_dict)
+            print(instance)
         else:
-            new_instance = HBNBCommand.classes[split_args[0]]()
-        storage.save()
-        print(new_instance.id)
-        storage.save()
-
+            print("** class doesn't exist **")
+            return False
+        print(instance.id)
+        instance.save()
     def help_create(self):
         """ Help information for the create method """
         print("Creates a class of any type")
